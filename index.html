@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catch the Cube</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #f0f0f0;
+    }
+    canvas {
+      display: block;
+    }
+    #score {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-family: Arial, sans-serif;
+      font-size: 24px;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div id="score">Score: 0</div>
+  <audio id="bgMusic" loop autoplay>
+    <source src="your-background-music.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // Three.js setup
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Paddle setup
+    const paddleGeometry = new THREE.BoxGeometry(5, 1, 1);
+    const paddleMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    const paddle = new THREE.Mesh(paddleGeometry, paddleMaterial);
+    scene.add(paddle);
+
+    // Cube setup
+    const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
+    const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    let cube;
+    let score = 0;
+
+    // Create border
+    const borderGeometry = new THREE.BoxGeometry(20, 1, 1);
+    const borderMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    const border = new THREE.Mesh(borderGeometry, borderMaterial);
+    border.position.y = -11;
+    scene.add(border);
+
+    // Position the paddle
+    paddle.position.y = -10;
+
+    // Position the camera
+    camera.position.z = 5;
+
+    // Game logic
+    function update() {
+      if (cube) {
+        cube.rotation.x += 0.05;
+        cube.rotation.y += 0.05;
+        cube.rotation.z += 0.05;
+        cube.position.y -= 0.05;
+        if (cube.position.y < -10) {
+          scene.remove(cube);
+          cube = null;
+          spawnCube();
+        }
+        if (cube.position.y <= -9.5 && cube.position.x >= paddle.position.x - 2.5 && cube.position.x <= paddle.position.x + 2.5) {
+          scene.remove(cube);
+          cube = null;
+          score++;
+          document.getElementById('score').innerText = 'Score: ' + score;
+          spawnCube(); // Spawn a new cube regardless
+        }
+      } else {
+        spawnCube();
+      }
+    }
+
+    // Cube spawning function
+    function spawnCube() {
+      const randomX = (Math.random() * 18) - 9; // Adjusted to fit within the border
+      cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+      cube.position.set(randomX, 10, 0);
+      scene.add(cube);
+    }
+
+    // Game loop
+    function animate() {
+      requestAnimationFrame(animate);
+      update();
+      renderer.render(scene, camera);
+    }
+
+    // Event listeners
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowLeft' && paddle.position.x > -9.5) {
+        paddle.position.x -= 0.2;
+      } else if (event.key === 'ArrowRight' && paddle.position.x < 9.5) {
+        paddle.position.x += 0.2;
+      }
+    });
+
+    // Mouse click event listener
+    document.addEventListener('mousedown', (event) => {
+      const mouse = new THREE.Vector2();
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(scene.children);
+      if (intersects.length > 0 && intersects[0].object === cube) {
+        scene.remove(cube);
+        cube = null;
+        score++;
+        document.getElementById('score').innerText = 'Score: ' + score;
+      }
+    });
+
+    // Start the game
+    spawnCube();
+    animate();
+  </script>
+</body>
+</html>
